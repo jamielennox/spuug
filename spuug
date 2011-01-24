@@ -57,6 +57,10 @@ class GNamer
       "G_TYPE_OBJECT"
     elsif @parent_classname =~ /^Gtk(.*)/
       "GTK_TYPE_" + underscorify($1).upcase
+    elsif @parent_classname =~ /^Clutter(.*)/
+      "CLUTTER_TYPE_" + underscorify($1).upcase
+    elsif @parent_classname =~ /^Mx(.*)/
+      "MX_TYPE_" + underscorify($1).upcase    
     elsif @parent_classname == "GTypeInterface"
       "G_TYPE_INTERFACE"
     else
@@ -77,6 +81,10 @@ class GNamer
       "<glib-object.h>"
     elsif @parent_classname =~ /^(Gnome)/
       "<libgnome/#{underscorify(@parent_classname).downcase.gsub(/_/,'-')}.h>"
+    elsif @parent_classname =~ /^(Mx)/
+      "<mx/mx.h>"
+    elsif @parent_classname =~ /^(Clutter)/
+      "<clutter/clutter.h>"
     else
       "\"#{underscorify(@parent_classname).downcase.gsub(/_/,'-')}.h\"" 
     end
@@ -270,10 +278,10 @@ class GObjectBuilder
 
       # class 
       "struct _#{@gnamer.classname} {\n" +
-      "\t #{@gnamer.parent_classname} parent;\n" +
+      "\t#{@gnamer.parent_classname} parent;\n\n" +
       "\t" + commentnl("insert public members, if any") + "\n" +
       "\t" + commentnl("private") +
-      "\t" + "#{@gnamer.classname}Private *_priv;\n" +
+      "\t" + "#{@gnamer.classname}Private *priv;\n" +
       "};\n\n" +
       
       # parent class
@@ -288,17 +296,23 @@ class GObjectBuilder
       "GType        #{@gnamer.us_classname}_get_type    (void) G_GNUC_CONST;\n\n" +
       commentnl("parameter-less _new function (constructor)") +
 
-      commentnl("if this is a kind of GtkWidget, it should probably return at GtkWidget*") +
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
-          @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/)
-        then "GtkWidget*   " else   "#{@gnamer.classname}*    " end +
+          @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/) then
+          "GtkWidget*   " 
+      elsif (@gnamer.namespace =~ /Clutter|Mx/ or 
+          @gnamer.parent_classname =~ /Clutter|Mx/) then
+          "ClutterActor*   "
+      else   
+          commentnl("if this is a kind of GtkWidget, it should probably return at GtkWidget*") +
+          "#{@gnamer.classname}*    " 
+      end +
 
       @gnamer.us_classname + "_new         (void);\n\n"+
       commentnl("fill in other public functions, e.g.:") +
       commentnl("\tvoid       " + @gnamer.us_classname + 
                 "_do_something (#{@gnamer.classname} *self, const gchar* param);") +
       commentnl("\tgboolean   " + @gnamer.us_classname + 
-                "_has_foo      (#{@gnamer.classname} *self, gint value);") + "\n\n" +
+                "_has_foo      (#{@gnamer.classname} *self, gint value);") + "\n" +
     
       "G_END_DECLS\n\n" +
       "#endif " + comment(@include_guard) + "\n\n" 
@@ -334,13 +348,13 @@ class GObjectBuilder
       "struct _#{@private_struct} {\n" +
       "\t" + commentnl("my private members go here, e.g.") +
       "\t" + commentnl("gboolean _frobnicate_mode;") +
-      "};\n" +
+      "};\n\n" +
       align2(get_private_func_def, "(G_TYPE_INSTANCE_GET_PRIVATE((o), \\",
              get_private_func_def.length + 4) + "\n" +
       align2("", " #{@type_macro}, \\",
              get_private_func_def.length + 4) + "\n" +
       align2("", " #{@private_struct}))",
-             get_private_func_def.length + 4) + "\n" +
+             get_private_func_def.length + 4) + "\n\n" +
       commentnl("globals") +
       "static #{@gnamer.parent_classname}Class *parent_class = NULL;\n\n" +
       commentnl("uncomment the following if you have defined any signals") + 
@@ -366,9 +380,9 @@ class GObjectBuilder
       
       "static void\n#{@gnamer.us_classname}_init (#{@gnamer.classname} *obj)\n" +
       "{\n" +
-      "\tobj->_priv = #{get_private_func}(obj);\n\n" +
+      "\tobj->priv = #{get_private_func}(obj);\n\n" +
       commentnl("to init any of the private data, do e.g:") + 
-      commentnl("\tobj->_priv->_frobnicate_mode = FALSE;") +
+      commentnl("\tobj->priv->_frobnicate_mode = FALSE;") +
       "}\n\n" +
       
       "static void\n#{@gnamer.us_classname}_finalize (GObject *obj)\n" +
@@ -379,14 +393,24 @@ class GObjectBuilder
       
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
           @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/)
-      then "GtkWidget*" else "#{@gnamer.classname}*" end +
+      then 
+          "GtkWidget *" 
+      elsif (@gnamer.namespace =~ /Clutter|Mx/ or 
+          @gnamer.parent_classname =~ /Clutter|Mx/)
+          "ClutterActor *"
+      else "#{@gnamer.classname} *" end +
       
       "\n#{@gnamer.us_classname}_new (void)\n" +
       "{\n" +
       "\treturn " + 
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
           @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/)
-      then "GTK_WIDGET" else "#{@cast_macro}" end +
+      then 
+          "GTK_WIDGET" 
+      elsif (@gnamer.namespace =~ /Clutter|Mx/ or 
+          @gnamer.parent_classname =~ /Clutter|Mx/)
+          "CLUTTER_ACTOR"
+      else "#{@cast_macro}" end +
       "(g_object_new(#{@type_macro}, NULL));\n" +
       "}\n\n" +
       commentnl("following: other function implementations") +
@@ -400,6 +424,10 @@ def build_test_obj_dot_c
     
     if @gnamer.parent_classname =~ /^Gtk/
       "#include <gtk/gtk.h>\n"
+    elsif @gnamer.parent_classname =~ /^Clutter/ 
+      "#include <clutter/clutter.h>\n"
+    elsif @gnamer.parent_classname =~ /^Mx/ 
+      "#include <mx/mx.h>\n"
     else "" end +
 
     "#include \"#{@gnamer.file_name("h")}\"\n\n" +
@@ -409,6 +437,8 @@ def build_test_obj_dot_c
       "\tGtkWidget *obj;\n\n" 
     elsif @gnamer.parent_classname =~ /^GObject/
       "\tGObject *obj;\n\n" 
+    elsif @gnamer.parent_classname =~ /^(Clutter|Mx)/
+      "\tClutterActor *obj;\n\n"
     else
       "\t#{@gnamer.classname} *obj;\n\n" 
     end +
@@ -417,6 +447,8 @@ def build_test_obj_dot_c
       "\tgtk_init (&argc, &argv);\n"
     elsif @gnamer.parent_classname =~ /^(GObject)/
       "\tg_type_init ();\n"
+    elsif @gnamer.parent_classname =~ /^(Clutter|Mx)/
+      "\tclutter_init (&argc, &argv);\n"
     else
       commentnl("\tput init code here, e.g.") +
         commentnl("\tgtk_init for gtk-derived, or g_type for gobject-derived")
@@ -427,6 +459,8 @@ def build_test_obj_dot_c
 
     if @gnamer.parent_classname =~ /^(Gtk|Gnome|Egg)/
       "\tgtk_main ();\n"
+    elsif @gnamer.parent_classname =~ /^(Clutter|Mx)/
+      "\tclutter_main ();\n"
     else "" end +    
     "\treturn 0;\n}\n"
 end
@@ -440,6 +474,10 @@ def build_test_obj_makefile
     pkg_config_mod='gobject-2.0'
   elsif @gnamer.parent_classname =~ /^(Gnome)/
     pkg_config_mod='libgnome-2.0 libgnomeui-2.0'
+  elsif @gnamer.parent_classname =~ /^Clutter/
+    pkg_config_mod='clutter-1.0'
+  elsif @gnamer.parent_classname =~ /^Mx/
+    pkg_config_mod='mx-1.0'
   end
 
   "# Makefile for testing #{@gnamer.classname}\n\n" +

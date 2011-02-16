@@ -378,8 +378,7 @@ class GObjectBuilder
 
       "static void\n#{@gnamer.us_classname}_class_init (#{@gnamer.classname}Class *klass)\n" +
       "{\n" +
-      "\tGObjectClass *gobject_class;\n" +
-      "\tgobject_class = (GObjectClass*) klass;\n\n" +
+      "\tGObjectClass *gobject_class = (GObjectClass*) klass;\n\n" +
       "\tparent_class            = g_type_class_peek_parent (klass);\n" +
       "\t//gobject_class->constructed = #{@gnamer.us_classname}_constructed;\n" +
       "\t//gobject_class->get_property = #{@gnamer.us_classname}_get_property;\n" +

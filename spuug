@@ -286,7 +286,7 @@ class GObjectBuilder
       
       # parent class
       "struct _#{@gnamer.classname}Class {\n" +
-      "\t#{@gnamer.parent_classname}Class parent_class;\n" +
+      "\t#{@gnamer.parent_classname}Class parent_class;\n\n" +
       "\t" + commentnl("insert signal callback declarations, e.g.") +
       "\t" + commentnl("void (* my_event) (" + @gnamer.classname + "* obj);") +
       "};\n\n" +
@@ -294,7 +294,6 @@ class GObjectBuilder
       # main functions
       commentnl("member functions") +
       "GType        #{@gnamer.us_classname}_get_type    (void) G_GNUC_CONST;\n\n" +
-      commentnl("parameter-less _new function (constructor)") +
 
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
           @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/) then
@@ -303,16 +302,10 @@ class GObjectBuilder
           @gnamer.parent_classname =~ /Clutter|Mx/) then
           "ClutterActor*   "
       else   
-          commentnl("if this is a kind of GtkWidget, it should probably return at GtkWidget*") +
           "#{@gnamer.classname}*    " 
       end +
 
       @gnamer.us_classname + "_new         (void);\n\n"+
-      commentnl("fill in other public functions, e.g.:") +
-      commentnl("\tvoid       " + @gnamer.us_classname + 
-                "_do_something (#{@gnamer.classname} *self, const gchar* param);") +
-      commentnl("\tgboolean   " + @gnamer.us_classname + 
-                "_has_foo      (#{@gnamer.classname} *self, gint value);") + "\n" +
     
       "G_END_DECLS\n\n" +
       "#endif " + comment(@include_guard) + "\n\n" 
@@ -332,9 +325,6 @@ class GObjectBuilder
       commentnl("insert (c)/licensing information)") + "\n" +
       "#include \"#{@gnamer.file_name("h")}\"\n" +
       
-      commentnl("include other impl specific header files") + "\n" +
-      
-      commentnl("'private'/'protected' functions") +
       "static void #{@gnamer.us_classname}_class_init (#{@gnamer.classname}Class *klass);\n" +
       "static void #{@gnamer.us_classname}_init       (#{@gnamer.classname} *obj);\n" +
       "//static void #{@gnamer.us_classname}_constructed (GObject *obj);\n" + 
@@ -349,9 +339,7 @@ class GObjectBuilder
       "*/\n\n" +  
       
       commentnl("signals") +
-      "enum {\n" +
-      "\t" + commentnl("MY_SIGNAL_1,") +
-      "\t" + commentnl("MY_SIGNAL_2,") +
+      "enum {\n\n" +
       "\tLAST_SIGNAL\n};\n\n" +
 
       commentnl("properties") + 
@@ -370,7 +358,6 @@ class GObjectBuilder
              get_private_func_def.length + 4) + "\n\n" +
       commentnl("globals") +
       "static #{@gnamer.parent_classname}Class *parent_class = NULL;\n\n" +
-      commentnl("uncomment the following if you have defined any signals") + 
       commentnl("static guint signals[LAST_SIGNAL] = {0};") + "\n" +
       
       "G_DEFINE_TYPE (#{@gnamer.classname}, #{@gnamer.us_classname}, " +
@@ -402,9 +389,7 @@ class GObjectBuilder
       
       "static void\n#{@gnamer.us_classname}_init (#{@gnamer.classname} *obj)\n" +
       "{\n" +
-      "\tobj->priv = #{get_private_func}(obj);\n\n" +
-      commentnl("to init any of the private data, do e.g:") + 
-      commentnl("\tobj->priv->_frobnicate_mode = FALSE;") +
+      "\tobj->priv = #{get_private_func}(obj);\n" +
       "}\n\n" +
 
       "#if 0\n" +
@@ -426,7 +411,7 @@ class GObjectBuilder
        
       "static void\n#{@gnamer.us_classname}_finalize (GObject *obj)\n" +
       "{\n" +
-      commentnl("\tfree/unref instance resources here") +
+      "\t//#{@private_struct} *priv = #{@cast_macro} (obj)->priv;\n\n" +
       "\tG_OBJECT_CLASS(parent_class)->finalize (obj);\n" +
       "}\n\n" +
       

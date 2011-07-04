@@ -1,0 +1,4 @@
+spuug is a little tool that generates the boilerplate code for GObjects. I you don’t know what they are, then probably this tool is of little use to you…
+
+spuug can be used for ‘plain’ GObjects, but also for GTK+-widgets etc., and tries to be a bit smart with the code in spits out. I've been using it myself for a while, and it has been very helpful. However, a code generator is no more than that — you still need to understand GObjects/GtkWidgets to use it. So, I would recommend writing a couple ‘by hand’ before using a tool like this one.
+

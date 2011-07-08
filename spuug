@@ -243,8 +243,7 @@ class GObjectBuilder
       commentnl("insert (c)/licensing information)") + "\n" +
       "#ifndef #{@include_guard}\n" +
       "#define #{@include_guard}\n\n" +
-      "#include #{@gnamer.parent_include}\n" +
-      commentnl("other include files") + "\n" +
+      "#include #{@gnamer.parent_include}\n\n" +
       "G_BEGIN_DECLS\n\n" +
       commentnl("convenience macros") +
       
@@ -272,14 +271,13 @@ class GObjectBuilder
                   @type_macro + ",#{@gnamer.classname}Class))",
                   @longest) + "\n\n" +
       
-      "typedef struct _#{@gnamer.classname}      #{@gnamer.classname};\n" + 
-      "typedef struct _#{@gnamer.classname}Class #{@gnamer.classname}Class;\n" + 
-      "typedef struct _#{@private_struct}         #{@private_struct};\n\n" +
+      "typedef struct _#{@gnamer.classname}         #{@gnamer.classname};\n" + 
+      "typedef struct _#{@gnamer.classname}Class    #{@gnamer.classname}Class;\n" + 
+      "typedef struct _#{@private_struct}  #{@private_struct};\n\n" +
 
       # class 
       "struct _#{@gnamer.classname} {\n" +
       "\t#{@gnamer.parent_classname} parent;\n\n" +
-      "\t" + commentnl("insert public members, if any") + "\n" +
       "\t" + commentnl("private") +
       "\t" + "#{@gnamer.classname}Private *priv;\n" +
       "};\n\n" +
@@ -287,25 +285,25 @@ class GObjectBuilder
       # parent class
       "struct _#{@gnamer.classname}Class {\n" +
       "\t#{@gnamer.parent_classname}Class parent_class;\n\n" +
-      "\t" + commentnl("insert signal callback declarations, e.g.") +
+      "\t" + commentnl("vtable") + "\n" +
+      "\t" + commentnl("signals") +
       "\t" + commentnl("void (* my_event) (" + @gnamer.classname + "* obj);") +
       "};\n\n" +
       
       # main functions
-      commentnl("member functions") +
-      "GType        #{@gnamer.us_classname}_get_type    (void) G_GNUC_CONST;\n\n" +
+      "GType #{@gnamer.us_classname}_get_type (void) G_GNUC_CONST;\n\n" +
 
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
           @gnamer.parent_classname =~ /Gtk|Gnome|Egg|Hildon/) then
-          "GtkWidget*   " 
+          "GtkWidget * " 
       elsif (@gnamer.namespace =~ /Clutter|Mx/ or 
           @gnamer.parent_classname =~ /Clutter|Mx/) then
-          "ClutterActor*   "
+          "ClutterActor * "
       else   
-          "#{@gnamer.classname}*    " 
+          "#{@gnamer.classname} * " 
       end +
 
-      @gnamer.us_classname + "_new         (void);\n\n"+
+      @gnamer.us_classname + "_new (void);\n\n"+
     
       "G_END_DECLS\n\n" +
       "#endif " + comment(@include_guard) + "\n\n" 
@@ -323,7 +321,7 @@ class GObjectBuilder
     dot_c = 
       commentnl(@gnamer.file_name("c")) + "\n" +
       commentnl("insert (c)/licensing information)") + "\n" +
-      "#include \"#{@gnamer.file_name("h")}\"\n" +
+      "#include \"#{@gnamer.file_name("h")}\"\n\n" +
       
       "static void #{@gnamer.us_classname}_class_init (#{@gnamer.classname}Class *klass);\n" +
       "static void #{@gnamer.us_classname}_init       (#{@gnamer.classname} *obj);\n" +
@@ -365,14 +363,14 @@ class GObjectBuilder
 
       "static void\n#{@gnamer.us_classname}_class_init (#{@gnamer.classname}Class *klass)\n" +
       "{\n" +
-      "\tGObjectClass *gobject_class = (GObjectClass*) klass;\n\n" +
-      "\tparent_class            = g_type_class_peek_parent (klass);\n" +
-      "\t//gobject_class->constructed = #{@gnamer.us_classname}_constructed;\n" +
+      "\tGObjectClass *gobject_class = (GObjectClass *) klass;\n\n" + 
+      "\tparent_class                = g_type_class_peek_parent (klass);\n" +
+      "\t//gobject_class->constructed  = #{@gnamer.us_classname}_constructed;\n" +
       "\t//gobject_class->get_property = #{@gnamer.us_classname}_get_property;\n" +
       "\t//gobject_class->set_property = #{@gnamer.us_classname}_set_property;\n" +
-      "\t//gobject_class->dispose = #{@gnamer.us_classname}_dispose;\n" +
-      "\tgobject_class->finalize = #{@gnamer.us_classname}_finalize;\n\n" +
-      "\tg_type_class_add_private (gobject_class, sizeof(#{@private_struct}));\n\n" +
+      "\t//gobject_class->dispose      = #{@gnamer.us_classname}_dispose;\n" +
+      "\tgobject_class->finalize     = #{@gnamer.us_classname}_finalize;\n\n" +
+      "\tg_type_class_add_private (gobject_class, sizeof (#{@private_struct}));\n\n" +
       "\t" + commentnl("properties: param spec definitions -") + 
       "\t" + commentnl("http://library.gnome.org/devel/gobject/unstable/gobject-Standard-Parameter-and-Value-Types.html") + "\n" + 
       "\t/* example:\n" +
@@ -389,7 +387,7 @@ class GObjectBuilder
       
       "static void\n#{@gnamer.us_classname}_init (#{@gnamer.classname} *obj)\n" +
       "{\n" +
-      "\tobj->priv = #{get_private_func}(obj);\n" +
+      "\tobj->priv = #{get_private_func} (obj);\n" +
       "}\n\n" +
 
       "#if 0\n" +
@@ -412,7 +410,7 @@ class GObjectBuilder
       "static void\n#{@gnamer.us_classname}_finalize (GObject *obj)\n" +
       "{\n" +
       "\t//#{@private_struct} *priv = #{@cast_macro} (obj)->priv;\n\n" +
-      "\tG_OBJECT_CLASS(parent_class)->finalize (obj);\n" +
+      "\tG_OBJECT_CLASS (parent_class)->finalize (obj);\n" +
       "}\n\n" +
       
       if (@gnamer.namespace =~ /Gtk|Gnome|Egg|Hildon/ or 
@@ -435,7 +433,7 @@ class GObjectBuilder
           @gnamer.parent_classname =~ /Clutter|Mx/)
           "CLUTTER_ACTOR"
       else "#{@cast_macro}" end +
-      "(g_object_new(#{@type_macro}, NULL));\n" +
+      " (g_object_new (#{@type_macro}, NULL));\n" +
       "}\n\n" +
 
       "#if 0\n" + 

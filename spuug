@@ -289,7 +289,7 @@ class GObjectBuilder
       $tab + "#{@gnamer.parent_classname}Class parent_class;\n\n" +
       $tab + commentnl("vtable") + "\n" +
       $tab + commentnl("signals") +
-      $tab + commentnl("void (* my_event) (" + @gnamer.classname + "* obj);") +
+      $tab + commentnl("void (* example) (" + @gnamer.classname + "* obj, GObject *param);") +
       "};\n\n" +
       
       # main functions
@@ -333,22 +333,23 @@ class GObjectBuilder
 
       "/*\n" + 
       "static void #{@gnamer.us_classname}_get_property (GObject *object, guint prop_id,\n" +
-      $tab * 4 + "GValue *value, GParamSpec *pspec);\n" + 
+      $tab * 2 + "GValue *value, GParamSpec *pspec);\n" + 
       "static void #{@gnamer.us_classname}_set_property (GObject *object, guint prop_id,\n" +
-      $tab * 4 + "const GValue *value, GParamSpec *pspec);\n" +
+      $tab * 2 + "const GValue *value, GParamSpec *pspec);\n" +
       "*/\n\n" +  
       
       commentnl("signals") +
       "enum {\n\n" +
-      $tab + "LAST_SIGNAL\n};\n\n" +
+      $tab + "SIG_LAST\n};\n\n" +
 
       commentnl("properties") + 
       "enum {\n" + 
       $tab + "PROP_0,\n\n" + 
+      $tab + "PROP_LAST\n" + 
       "};\n\n" + 
 
-      "struct _#{@private_struct} {\n" +
-      "};\n\n" +
+      "struct _#{@private_struct} {\n" + $tab + 
+      "\n};\n\n" +
 
       align2(get_private_func_def, "(G_TYPE_INSTANCE_GET_PRIVATE((o), \\",
              get_private_func_def.length + 4) + "\n" +
@@ -358,14 +359,15 @@ class GObjectBuilder
              get_private_func_def.length + 4) + "\n\n" +
       commentnl("globals") +
       "static #{@gnamer.parent_classname}Class *parent_class = NULL;\n\n" +
-      commentnl("static guint signals[LAST_SIGNAL] = {0};") + "\n" +
+      commentnl("static guint signals[SIG_LAST] = { 0 };") +
+      commentnl("static GParamSpec *props[PROP_LAST] = { 0 };") + "\n" +
       
       "G_DEFINE_TYPE (#{@gnamer.classname}, #{@gnamer.us_classname}, " +
                       "#{@gnamer.parent_type_macro});\n\n" +
 
       "static void\n#{@gnamer.us_classname}_class_init (#{@gnamer.classname}Class *klass)\n" +
       "{\n" +
-      $tab + "GObjectClass *gobject_class = (GObjectClass *) klass;\n\n" + 
+      $tab + "GObjectClass *gobject_class = G_OBJECT_CLASS (klass);\n\n" + 
       $tab + "parent_class                = g_type_class_peek_parent (klass);\n" +
       $tab + "//gobject_class->constructed  = #{@gnamer.us_classname}_constructed;\n" +
       $tab + "//gobject_class->get_property = #{@gnamer.us_classname}_get_property;\n" +
@@ -373,18 +375,24 @@ class GObjectBuilder
       $tab + "//gobject_class->dispose      = #{@gnamer.us_classname}_dispose;\n" +
       $tab + "gobject_class->finalize     = #{@gnamer.us_classname}_finalize;\n\n" +
       $tab + "g_type_class_add_private (gobject_class, sizeof (#{@private_struct}));\n\n" +
-      $tab + commentnl("properties: param spec definitions -") + 
+      $tab + commentnl("properties") + 
       $tab + commentnl("http://library.gnome.org/devel/gobject/unstable/gobject-Standard-Parameter-and-Value-Types.html") + "\n" + 
       $tab + "/* example:\n" +
-      $tab + "g_object_class_install_property (gobject_class, PROPERTY,\n" + 
-      $tab * 3 +"g_param_spec_int (\"name\", \"nick\", \"blurb\",\n" +
-      $tab * 4 + "G_MININT, G_MAXINT, 0, G_PARAM_READWRITE));\n#{$tab}*/\n\n" +
-      $tab + commentnl("signal definitions go here, e.g.:") +
-      commentnl("#{$tab}signals[MY_SIGNAL_1] =") +
-      commentnl("#{$tab * 2}g_signal_new (\"my_signal_1\",....);") + 
-      commentnl("#{$tab}signals[MY_SIGNAL_2] =") +
-      commentnl("#{$tab * 2}g_signal_new (\"my_signal_2\",....);") +
-      commentnl("#{$tab}etc.") +
+      $tab + "props[PROP_EXAMPLE] = g_params_spec_int (\"name\", \"nick\", \"blurb\",\n" + 
+      $tab * 3 + "G_MININT, G_MAXINT, 0, G_PARAM_READWRITE);\n" + 
+      $tab + "g_object_class_install_property (gobject_class, PROP_EXAMPLE, props[PROP_EXAMPLE]);\n" + 
+      $tab + "*/\n\n" + 
+      $tab + commentnl("signals") + "\n" +
+      $tab + "/* example:\n" + 
+      $tab + "signals[SIG_EXAMPLE] = g_signal_new (\"example\",\n" +
+      $tab * 3 + "G_TYPE_FROM_CLASS (klass),\n" + 
+      $tab * 3 + "G_SIGNAL_RUN_LAST,\n" + 
+      $tab * 3 + "G_STRUCT_OFFSET (#{@gnamer.classname}Class, example),\n" +
+      $tab * 3 + "NULL, NULL,\n" + 
+      $tab * 3 + "g_cclosure_marshal_VOID__OBJECT,\n" +
+      $tab * 3 + "G_TYPE_NONE, 1,\n" + 
+      $tab * 3 + "G_TYPE_OBJECT);\n" +
+      $tab + "*/\n" +
       "}\n\n" +
       
       "static void\n#{@gnamer.us_classname}_init (#{@gnamer.classname} *obj)\n" +
@@ -405,7 +413,7 @@ class GObjectBuilder
       "static void\n#{@gnamer.us_classname}_dispose (GObject *obj)\n" +
       "{\n" +
       $tab + "//#{@private_struct} *priv = #{@cast_macro} (obj)->priv;\n\n" +
-      $tab + "G_OBJECT_CLASS (parent_class)->dispose (obj);\n" + 
+      $tab + "G_OBJECT_CLASS (parent_class)->dispose (obj);\n\n" + 
       "}\n" + 
       "#endif\n\n" +
        
@@ -442,7 +450,8 @@ class GObjectBuilder
       "static void\n" +
       "#{@gnamer.us_classname}_get_property (GObject *object, guint prop_id,\n" +  
       $tab * 2 + "GValue *value, GParamSpec *pspec)\n{\n" +
-      $tab + "g_return_if_fail (#{@is_macro} (object));\n\n" + 
+      $tab + "#{@gnamer.classname} *self = #{@cast_macro} (object);\n\n" + 
+#      $tab + "g_return_if_fail (#{@is_macro} (object));\n\n" + 
 
       $tab + "switch (prop_id)\n#{$tab}{\n\n" +
       $tab * 2 + "default:\n" +
@@ -452,7 +461,8 @@ class GObjectBuilder
       "static void\n" +
       "#{@gnamer.us_classname}_set_property (GObject *object, guint prop_id,\n" +  
       $tab * 2 + "const GValue *value, GParamSpec *pspec)\n{\n" +
-      $tab + "g_return_if_fail (#{@is_macro} (object));\n\n" + 
+      $tab + "#{@gnamer.classname} *self = #{@cast_macro} (object);\n\n" + 
+#      $tab + "g_return_if_fail (#{@is_macro} (object));\n\n" + 
 
       $tab + "switch (prop_id)\n#{$tab}{\n\n" +
       $tab * 2 + "default:\n" +

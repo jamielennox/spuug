@@ -134,16 +134,21 @@ end
 
 class GObjectBuilder
   
-  def initialize(gnamer) # a GNamer instance 
+  def initialize(gnamer,classname) # a GNamer instance 
+    if classname then 
+        @class_ext = "CLASS"
+    else
+        @class_ext = "INTERFACE"
+    end
     @gnamer           = gnamer 
     @type_macro       = "#{@gnamer.us_namespace}_TYPE_#{@gnamer.us_basename}".upcase
     @cast_macro       = "#{@gnamer.us_namespace}_#{@gnamer.us_basename}".upcase
     @include_guard    = "__#{@cast_macro}_H__" 
     @is_macro         = "#{@gnamer.us_namespace}_IS_#{@gnamer.us_basename}".upcase
-    @class_is_macro   = "#{@is_macro}_CLASS"  
-    @class_cast_macro = "#{@cast_macro}_CLASS"
-    @class_is_macro   = "#{@is_macro}_CLASS"
-    @class_get_macro  = "#{@cast_macro}_GET_CLASS" 
+    @class_is_macro   = "#{@is_macro}_#{@class_ext}"  
+    @class_cast_macro = "#{@cast_macro}_#{@class_ext}"
+    @class_is_macro   = "#{@is_macro}_#{@class_ext}"
+    @class_get_macro  = "#{@cast_macro}_GET_#{@class_ext}" 
     @longest          = "#{@class_is_macro}(klass)".length
     @private_struct   = "#{@gnamer.classname}Private"
   end
@@ -182,13 +187,13 @@ class GObjectBuilder
                   @type_macro + ",#{@gnamer.classname}Class))",
                   @longest) + "\n\n" +
       
-      "typedef struct _#{@gnamer.classname}      #{@gnamer.classname};\n" + 
-      "typedef struct _#{@gnamer.classname}Class #{@gnamer.classname}Class;\n\n" + 
+      "typedef struct _#{@gnamer.classname}          #{@gnamer.classname};\n" + 
+      "typedef struct _#{@gnamer.classname}Interface #{@gnamer.classname}Interface;\n\n" + 
       
       # parent class
-      "struct _#{@gnamer.classname}Class {\n" +
+      "struct _#{@gnamer.classname}Interface {\n" +
       $tab + "#{@gnamer.parent_classname} parent;\n\n" +
-      $tab + commentnl("the 'vtable': declare function pointers here, e.g.:") +
+      $tab + commentnl("vtable") +
       $tab + commentnl("gchar* (*do_something_func) (" + 
                        @gnamer.classname + "* self, gint some_value);") +
       "};\n\n" +
@@ -196,9 +201,6 @@ class GObjectBuilder
       # main functions
       "GType        #{@gnamer.us_classname}_get_type    (void) G_GNUC_CONST;\n\n" +
 
-      commentnl("declare interface functions, corresponding to vtable above, e.g.:") +
-      commentnl("#{$tab}gchar*       " + @gnamer.us_classname + 
-                "_do_something (#{@gnamer.classname} *self, gint some_value);") + "\n\n" + 
     
       "G_END_DECLS\n\n" +
       "#endif " + comment(@include_guard) + "\n\n" 
@@ -215,7 +217,37 @@ class GObjectBuilder
       commentnl("insert (c)/licensing information)") + "\n" +
       "#include \"#{@gnamer.file_name("h")}\"\n\n" +
       
-      "static void #{@gnamer.us_classname}_base_init (gpointer g_class);\n\n" + 
+      "enum {\n\n#{$tab}SIG_LAST\n};\n\n" +
+      "// static guint signals[SIG_LAST] = { 0 };\n\n" + 
+
+      "static void\n#{@gnamer.us_classname}_default_init (#{@gnamer.classname}Interface *iface)\n" +
+      "{\n" +
+      $tab + "static gboolean initialized = FALSE;\n" +
+      $tab + "if (!initialized)\n#{$tab}{\n" +
+      $tab * 2 + "initialized = TRUE;\n\n" +
+
+      $tab * 2 + commentnl("properties") + 
+      $tab * 2 + "/* example:\n" +  
+      $tab * 2 + "g_object_interface_install_property (iface,\n" +
+      $tab * 4 + "g_param_spec_string (\"name\", \"nick\", \"blurb\",\n" +
+      $tab * 6 + "NULL, G_PARAM_READWRITE));\n" + 
+      $tab * 2 + "*/\n\n\n" +
+
+      $tab * 2 + commentnl("signals") + 
+      $tab * 2 + "/* example:\n" + 
+      $tab * 2 + "signals[SIG_EXAMPLE] = g_signal_new (\"example\",\n" +
+      $tab * 4 + "G_TYPE_FROM_CLASS (g_class),\n" +
+      $tab * 4 + "G_SIGNAL_RUN_LAST, \n" + 
+      $tab * 4 + "G_STRUCT_OFFSET (#{@gnamer.classname}Interface, example),\n" +  
+      $tab * 4 + "NULL, NULL,\n" +
+      $tab * 4 + "g_cclosure_marshal_VOID__VOID,\n" +
+      $tab * 4 + "G_TYPE_NONE, 0);\n" + 
+      $tab * 2 + "*/\n" + 
+
+      $tab + "}\n}\n\n" +
+      
+      "G_DEFINE_INTERFACE (#{@gnamer.classname}, #{@gnamer.us_classname}, " +
+      "G_TYPE_INVALID);\n\n" +
 
       commentnl("'implement' our interface functions, e.g.:") +
       "/*\n" + 
@@ -223,19 +255,8 @@ class GObjectBuilder
       "#{@gnamer.us_classname}_do_something (#{@gnamer.classname} *self, gint some_value)\n" +
       "{\n#{$tab}return #{@class_get_macro}(self)->\n" + 
       $tab * 2 + "do_something_func (self, some_value);\n}\n" +
-      "*/\n\n" +
+      "*/\n\n" 
 
-      "static void\n#{@gnamer.us_classname}_base_init (gpointer g_class)\n" +
-      "{\n" +
-      $tab + "static gboolean initialized = FALSE;\n" +
-      $tab + "if (!initialized) {\n" +
-      $tab + commentnl("create interface signals here") +
-      $tab * 2 + "initialized = TRUE;\n" +
-      $tab + "}\n}\n" +
-      
-      commentnl("see G_DEFINE_TYPE_WITH_CODE if you need more control") +
-      "G_DEFINE_TYPE (#{@gnamer.classname}, #{@gnamer.us_classname}, " +
-      "#{@gnamer.parent_type_macro});\n\n"
   end
 
   
@@ -687,21 +708,11 @@ elsif interface
     $stderr.print "warning: interface does not start with namespace\n"
     $stderr.print "warning: prepending => '#{classname}'\n"
   end
-  # interface must end in IFace or Interface
-  # ruby strings could use 'ends_with' I guess...
-  if interface.downcase.index("iface", interface.length - "iface".length) == nil and 
-      interface.downcase.index("interface", interface.length - "interface".length) == nil
-    interface += "IFace"
-    $stderr.print "warning: interfaces must end in IFace or Interface\n"
-    $stderr.print "warning: appending 'IFace' == '#{interface}'\n"
-  end  
-
   gnamer   = GNamer.new(interface,namespace,parent_classname)
-
 end
 
 
-gbuilder = GObjectBuilder.new(gnamer)
+gbuilder = GObjectBuilder.new(gnamer,classname)
 
 dot_c=gnamer.file_name("c")
 dot_h=gnamer.file_name("h")

@@ -399,7 +399,7 @@ class GObjectBuilder
       $tab + commentnl("properties") + 
       $tab + commentnl("http://library.gnome.org/devel/gobject/unstable/gobject-Standard-Parameter-and-Value-Types.html") + "\n" + 
       $tab + "/* example:\n" +
-      $tab + "props[PROP_EXAMPLE] = g_params_spec_int (\"name\", \"nick\", \"blurb\",\n" + 
+      $tab + "props[PROP_EXAMPLE] = g_param_spec_int (\"name\", \"nick\", \"blurb\",\n" + 
       $tab * 3 + "G_MININT, G_MAXINT, 0, G_PARAM_READWRITE);\n" + 
       $tab + "g_object_class_install_property (gobject_class, PROP_EXAMPLE, props[PROP_EXAMPLE]);\n" + 
       $tab + "*/\n\n" + 

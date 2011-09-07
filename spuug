@@ -184,7 +184,7 @@ class GObjectBuilder
                   @longest) + "\n" +
       hash_define("#{@class_get_macro}(inst)", 
                   "(G_TYPE_INSTANCE_GET_INTERFACE((inst)," +
-                  @type_macro + ",#{@gnamer.classname}Class))",
+                  @type_macro + ",#{@gnamer.classname}Interface))",
                   @longest) + "\n\n" +
       
       "typedef struct _#{@gnamer.classname}          #{@gnamer.classname};\n" + 

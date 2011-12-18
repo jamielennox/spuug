@@ -236,7 +236,7 @@ class GObjectBuilder
       $tab * 2 + commentnl("signals") + 
       $tab * 2 + "/* example:\n" + 
       $tab * 2 + "signals[SIG_EXAMPLE] = g_signal_new (\"example\",\n" +
-      $tab * 4 + "G_TYPE_FROM_CLASS (g_class),\n" +
+      $tab * 4 + "G_TYPE_FROM_CLASS (iface),\n" +
       $tab * 4 + "G_SIGNAL_RUN_LAST, \n" + 
       $tab * 4 + "G_STRUCT_OFFSET (#{@gnamer.classname}Interface, example),\n" +  
       $tab * 4 + "NULL, NULL,\n" +

@@ -63,6 +63,8 @@ class GNamer
       "CLUTTER_TYPE_" + underscorify($1).upcase
     elsif @parent_classname =~ /^Mx(.*)/
       "MX_TYPE_" + underscorify($1).upcase    
+    elsif @parent_classname =~ /^Gst(.*)/
+      "GST_TYPE_" + underscorify($1).upcase
     elsif @parent_classname == "GTypeInterface"
       "G_TYPE_INTERFACE"
     else
@@ -87,6 +89,8 @@ class GNamer
       "<mx/mx.h>"
     elsif @parent_classname =~ /^(Clutter)/
       "<clutter/clutter.h>"
+    elsif @parent_classname =~ /^(Gst)/
+      "<gst/gst.h>"
     else
       "\"#{underscorify(@parent_classname).downcase.gsub(/_/,'-')}.h\"" 
     end
@@ -502,6 +506,8 @@ def build_test_obj_dot_c
       "#include <clutter/clutter.h>\n"
     elsif @gnamer.parent_classname =~ /^Mx/ 
       "#include <mx/mx.h>\n"
+    elsif @gnamer.parent_classname =~ /^Gst/
+      "#include <gst/gst.h>\n"
     else "" end +
 
     "#include \"#{@gnamer.file_name("h")}\"\n\n" +
@@ -523,6 +529,8 @@ def build_test_obj_dot_c
       "#{$tab}g_type_init ();\n"
     elsif @gnamer.parent_classname =~ /^(Clutter|Mx)/
       "#{$tab}clutter_init (&argc, &argv);\n"
+    elsif @gnamer.parent_classname =~ /^(Gst)/
+      "#{$tab}gst_init (&argc, &argv);\n"
     else
       commentnl("#{$tab}put init code here, e.g.") +
         commentnl("#{$tab}gtk_init for gtk-derived, or g_type for gobject-derived")
@@ -552,6 +560,8 @@ def build_test_obj_makefile
     pkg_config_mod='clutter-1.0'
   elsif @gnamer.parent_classname =~ /^Mx/
     pkg_config_mod='mx-1.0'
+  elsif @gnamer.parent_classname =~ /^Gst/ 
+    pkg_config_mod='gstreamer-0.10'
   end
 
   "# Makefile for testing #{@gnamer.classname}\n\n" +
